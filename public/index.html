@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PWA Push Test</title>
+<link rel="manifest" href="/manifest.json">
+</head>
+<body>
+<h1>Test Notifications Push PWA</h1>
+<button id="subscribeBtn">S'abonner</button>
+
+<script>
+const VAPID_PUBLIC_KEY = "<TA_VAPID_PUBLIC_KEY>";
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  return new Uint8Array([...rawData].map(char => char.charCodeAt(0)));
+}
+
+async function registerSW() {
+  if ("serviceWorker" in navigator) {
+    return await navigator.serviceWorker.register("/sw.js");
+  }
+  throw new Error("Service Worker non supporté");
+}
+
+document.getElementById("subscribeBtn").addEventListener("click", async () => {
+  const registration = await registerSW();
+  const subscription = await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+  });
+
+  const response = await fetch("/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ subscription })
+  });
+
+  const data = await response.json();
+  alert("Abonnement enregistré ! ID automatique : " + data.id);
+});
+</script>
+</body>
+</html>
